@@ -18,18 +18,18 @@ This is an interactive Python GUI application for advanced mathematical visualiz
 1. Ensure you have Python 3.7 or later installed.
 2. Install required dependencies:
 
-///bash
+```bash
 pip install matplotlib numpy sympy
-
+```
 
 ## Usage
 
 1. Run the Python script:
 
 
-///bash 
+```bash
 python maths.py
-
+```
 
 2. Select one or more functions from the list on the right.
 3. Adjust x-axis range using the sliders.
