@@ -1,0 +1,14 @@
+# Super Math Visualization Studio - Requirements
+# Python 3.8+ required
+
+# Core Dependencies
+matplotlib>=3.5.0
+numpy>=1.20.0
+sympy>=1.9.0
+scipy>=1.7.0
+
+# Optional Dependencies (for full functionality)
+pillow>=8.0.0  # For animation export to GIF
+
+# Note: tkinter usually comes pre-installed with Python
+# If not, install python3-tk (Linux) or use your system's package manager
