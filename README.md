@@ -1,159 +1,108 @@
-# 🌟 Mathematics Visualiser – Advanced Plotting & Calculus Studio
+<h1 align="center">Mathematics Visualiser</h1>
 
-<!-- ADD DEMO GIF HERE -->
+<p align="center"><b>A free desktop app for seeing maths move, made by George Politis.</b><br>
+Type a function, press Plot. Derivatives, tangents, integrals, 3D surfaces, parametric curves and animations.<br>
+Windows · macOS · Linux</p>
 
-**Interactive desktop app for visualizing functions, 3D surfaces, parametric curves, calculus operations, and animations. Built with tkinter + matplotlib.**
+<p align="center">
+  <a href="https://github.com/georgepol1023/Mathematics-Visualiser/releases/latest"><b>⬇ Download for Windows</b></a> &nbsp;·&nbsp;
+  <a href="#install"><b>Install on macOS / Linux</b></a> &nbsp;·&nbsp;
+  <a href="LICENSE">MIT licence: free for everyone</a>
+</p>
 
-## Why This Exists
+<p align="center">
+  <a href="https://github.com/georgepol1023/Mathematics-Visualiser/actions/workflows/tests.yml"><img src="https://github.com/georgepol1023/Mathematics-Visualiser/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+</p>
 
-Visualizing math makes abstract concepts concrete. This tool lets students and educators:
-- Plot 2D/3D functions in real-time
-- Animate calculus (derivatives, tangent lines, area under curve)
-- Export as GIF or PNG
-- Explore 8 color schemes + parametric art
+![Mathematics Visualiser showing x³ − 3x with its derivative, a tangent line at x = 1.8 and the shaded area from −1 to 1.5](docs/screenshot.png)
 
-## Key Features
+---
 
-### 📊 Plotting Modes
-- **2D Functions** – sin(x), polynomials, exponentials, etc.
-- **3D Surfaces** – Heatmap rendering with rotation controls
-- **Parametric Curves** – Circle, butterfly, rose, Lissajous, spiral
-- **Multi-overlay** – Plot multiple functions on same axes
+## Install
 
-### 🧮 Calculus Tools
-- **Derivatives** – Visualize f'(x) with original function
-- **Tangent Lines** – Drag slider to show tangent at any point
-- **Integrals** – Shade area under curve, compute definite integrals
-- **Area Calculation** – Numerical + symbolic integration
+| Your computer | How | Then |
+|---|---|---|
+| **Windows** 10 / 11 | [**MathematicsVisualiser.exe**](https://github.com/georgepol1023/Mathematics-Visualiser/releases/latest/download/MathematicsVisualiser.exe) | Double-click it. No installer and no Python needed. |
+| **macOS, Linux** (or Windows with Python) | `pipx install git+https://github.com/georgepol1023/Mathematics-Visualiser.git` | Run `mathviz`. Needs Python 3.9 or later ([pipx](https://pipx.pypa.io) keeps it in its own environment; plain `pip install` works too). |
 
-### 🎨 Customization
-- **8 Color Schemes** – Neon, Cyberpunk, Ocean, Galaxy, Fire, Forest, Sunset, Pastel
-- **Plot Styles** – Line, scatter, stem, step, bar
-- **Grid Options** – Show/hide grid, toggle minor divisions, adjust transparency
-- **Dark/Light Theme** – System-aware automatic switching
+<details>
+<summary><b>The first time you open the .exe, Windows shows a warning</b></summary>
 
-### 🎬 Animation Engine
-- **Phase Shift** – Functions move horizontally
-- **Amplitude Modulation** – Functions pulse over time
-- **Frequency Modulation** – Dynamic oscillation changes
-- **Growing Plot** – Watch function draw with gradient colors
-- **3D Rotation** – Auto-rotate 3D surfaces
-- **Export as GIF** – Save animations
+The app is free and isn't signed with a paid developer certificate, so Windows asks you to confirm once:
+"Windows protected your PC": click **More info**, then **Run anyway**. Each release lists the file's SHA-256 checksum in `SHA256SUMS.txt` if you want to check the download.
+</details>
 
-## Tech Stack
+<details>
+<summary><b>Linux: "No module named tkinter"</b></summary>
 
-- **Python 3.8+**
-- **tkinter** – GUI
-- **matplotlib 3.5+** – plotting
-- **numpy, scipy** – numerical computation
-- **sympy** – symbolic math (derivatives, integrals)
-- **Pillow (optional)** – GIF export
+Some distributions ship Tk separately: `sudo apt install python3-tk` (Debian/Ubuntu) or `sudo dnf install python3-tkinter` (Fedora).
+</details>
 
-## Quick Start
+---
+
+## Getting started
+
+1. Type a function of `x` in **Function Equation**, for example `x**3 - 3*x`, or click one of the **Quick Functions**.
+2. Set the **X** and **Y range** and press **Plot**. **Add** draws another function on the same axes; **Clear** starts again.
+3. Open the **∫ Calculus** tab and tick **Show Derivative**, **Show Integral**, **Show Tangent Line** or **Show Area Under Curve**, then press Plot again. Drag the tangent slider to move the tangent point.
+4. Set integration bounds and press **Calculate Area** to get the definite integral, worked out exactly by SymPy and numerically by SciPy, side by side.
+5. Click anywhere on the plot to pin its coordinates. The toolbar above the plot pans, zooms and saves.
+
+Write functions the way Python does: `x**2` for x², `2*x` (not `2x`), `sqrt(x)`, `abs(x)`, `exp(x)`, `log(x)` for ln x, `log(x, 10)`, `sin`, `cos`, `tan`, `asin`, `sinh` … and the constants `pi` and `E`.
+
+## What it can do
+
+- **2D plots** of any function of `x`, drawn as a line, scatter, stem, step or bar chart, with as many functions overlaid as you like.
+- **Calculus:** the derivative f′(x), the running integral ∫f dx from the lower bound, a tangent line with its slope at any point, the shaded area between two bounds, and the definite integral both exactly and numerically. If SymPy can't find an exact answer within 3 seconds, the app says so and shows the numerical one, so the window never freezes.
+- **3D surfaces** `z = f(x, y)` as a surface, wireframe or contour plot, with elevation and azimuth sliders. Presets: ripple, saddle, bowl, wave, peaks and spiral.
+- **Parametric curves** `x(t), y(t)` drawn with a colour gradient and direction arrows. Presets: circle, Lissajous figure, rose, spiral, heart and Fay's butterfly curve.
+- **Animations** of your own function: phase shift f(x − φ), changing amplitude A·f(x), changing frequency f(kx), the curve drawing itself, and a rotating 3D surface. Save any animation as a GIF.
+- **Export** the plot as PNG, PDF or SVG, and the data as CSV.
+- **Style:** eight colour schemes, line width, marker size, grid and minor grid, and a light or dark background.
+
+| 3D surface | Parametric curve |
+|---|---|
+| ![sin(√(x² + y²)) drawn as a 3D surface](docs/surface.png) | ![Fay's butterfly curve](docs/parametric.png) |
+
+## Is it correct?
+
+The app is covered by 43 automated tests in [`tests/`](tests), run on Windows, macOS and Linux for every change:
+
+- results checked against known answers: derivatives, running integrals and definite integrals such as ∫₀³ x² dx = 9, ∫₀^π sin x dx = 2 and ∫₋₂² e^(−x²) dx = √π·erf(2);
+- the real window opened and driven through every plot mode, plot style, 3D style, animation and export;
+- awkward input: constants, functions undefined over part of the range (`log(x)`, `1/x`), typing mistakes, and integrals with no closed form.
+
+To run them: `pip install -e ".[dev]"`, then `pytest`.
+
+Derivatives on the plot are numerical (finite differences over the plotted points), so they are slightly less accurate at the two ends of the range and across discontinuities such as `1/x` at 0. The tangent slope and the exact integral come from SymPy.
+
+## Safety and privacy
+
+The app never connects to the internet and collects no data. Equations are read by SymPy's `sympify`, which evaluates its input as Python, so only type or paste expressions you understand, the same as you would in a Python prompt.
+
+## Building it yourself
+
+You need Python 3.9 or later.
 
 ```bash
-git clone https://github.com/georgepol1023/Mathematics-Visualiser.git
-cd Mathematics-Visualiser
-pip install -r requirements.txt
-python maths.py
+git clone https://github.com/georgepol1023/Mathematics-Visualiser.git && cd Mathematics-Visualiser
+pip install -e ".[dev]"      # the app, plus pytest and PyInstaller
+python -m mathviz            # run it
+pytest                       # run the tests
+python build_exe.py          # build dist/MathematicsVisualiser.exe (or the macOS/Linux equivalent)
 ```
 
-## Usage Examples
+Releases are built by GitHub Actions: pushing a tag such as `v1.0.1` tests the app, builds the Windows `.exe` and attaches it to a new release.
 
-### Simple 2D Plot
-1. Enter equation: `sin(x)`
-2. Set X range: -2π to 2π
-3. Click **Plot**
+| File | What's in it |
+|---|---|
+| [`mathviz/app.py`](mathviz/app.py) | the window, the plotting and the animations (Tkinter + Matplotlib) |
+| [`mathviz/symbolic.py`](mathviz/symbolic.py) | exact integration in a separate process with a time limit |
+| [`tests/test_app.py`](tests/test_app.py) | the test suite |
+| [`build_exe.py`](build_exe.py) | the PyInstaller build |
 
-### Calculate Integral
-1. Plot: `x**2`
-2. Go to **∫ Calculus** tab
-3. Set bounds (0 to 5)
-4. Check "Show Area Under Curve"
-5. Click "Calculate Area" → symbolic + numerical result
+## Licence
 
-### Create Animation
-1. Plot: `sin(x)`
-2. Go to **🎬 Animation** tab
-3. Select "Phase Shift"
-4. Click **Start**
-5. Click **Save Animation** → exports GIF
+Mathematics Visualiser is **free software under the [MIT licence](LICENSE)**: anyone may use it, copy it, change it and share it, for any purpose, including commercially. Just keep the copyright notice. It's built on [Matplotlib](https://matplotlib.org), [NumPy](https://numpy.org), [SciPy](https://scipy.org), [SymPy](https://www.sympy.org) and [Pillow](https://python-pillow.org), each under its own free licence.
 
-### 3D Visualization
-1. Switch to "3D Surface" mode
-2. Equation: `sin(sqrt(x**2 + y**2))`
-3. Click **Plot**
-4. Drag to rotate; adjust elevation/azimuth
-
-## Supported Math Functions
-
-| Category | Syntax | Example |
-|----------|--------|----------|
-| Trig | sin, cos, tan | sin(x), cos(2*x) |
-| Exponential | exp, e**x | exp(-x**2) |
-| Log | log, ln | log(x, 10) |
-| Hyperbolic | sinh, cosh, tanh | sinh(x) |
-| Special | sqrt, abs, factorial | sqrt(x), abs(x-2) |
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| Ctrl+S | Save plot |
-| Ctrl+C | Clear plot |
-| Ctrl+Q | Quit |
-| F11 | Fullscreen |
-
-## Architecture
-
-```
-maths.py (55KB)
-├── SuperMathGUI.__init__()      # Setup
-├── create_ui()                  # Build tabs
-├── create_*_controls()          # Tab-specific UI
-├── plot_function()              # 2D plotting
-├── plot_3d_surface()            # 3D rendering
-├── plot_parametric()            # Parametric curves
-├── animate_*()                  # Animation logic
-└── calculate_integral()         # Calculus engine
-```
-
-**Refactoring Opportunity:** Split into modules (ui/, plotting/, calculus/).
-
-## Limitations
-
-- Single-file architecture (55KB) – should be modularized
-- Limited symbolic math (sympy only for simple expressions)
-- No LaTeX rendering in plots
-- Animations can be slow on large point counts
-
-## Future Enhancements
-
-- [ ] Modularized code structure
-- [ ] Complex number visualization
-- [ ] Vector field plotting (gradients, curl, divergence)
-- [ ] LaTeX equation rendering on plots
-- [ ] Fourier analysis tool
-- [ ] Optimization visualizer
-
-## Performance Tips
-
-- Reduce point count for complex functions
-- Use wireframe for 3D surfaces
-- Lower animation frame rate for large ranges
-
-## Files
-
-- `maths.py` – Main application
-- `requirements.txt` – Dependencies
-- `maths.spec` – PyInstaller config (for .exe builds)
-
-## Author
-
-[George Politis](https://github.com/georgepol1023)
-
-## Resources
-
-- [Sympy Documentation](https://docs.sympy.org/)
-- [Matplotlib 3D Guide](https://matplotlib.org/stable/gallery/mplot3d/)
-- [Calculus Visualization Best Practices](https://www.desmos.com/)
+© 2025–2026 George Politis
