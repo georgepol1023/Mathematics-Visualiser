@@ -1,0 +1,31 @@
+# Runs the test suite on Windows, macOS and Linux for every push and pull request.
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python: ["3.9", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e ".[dev]"
+      - name: Test (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y xvfb
+          xvfb-run -a python -m pytest -v
+      - name: Test
+        if: runner.os != 'Linux'
+        run: python -m pytest -v
