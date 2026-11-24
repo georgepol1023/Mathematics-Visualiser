@@ -9,7 +9,7 @@ description = "A free desktop app for plotting, animating and exploring function
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "George Politis" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "matplotlib>=3.5",
     "numpy>=1.20",

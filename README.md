@@ -23,7 +23,7 @@ Windows · macOS · Linux</p>
 | Your computer | How | Then |
 |---|---|---|
 | **Windows** 10 / 11 | [**MathematicsVisualiser.exe**](https://github.com/georgepol1023/Mathematics-Visualiser/releases/latest/download/MathematicsVisualiser.exe) | Double-click it. No installer and no Python needed. |
-| **macOS, Linux** (or Windows with Python) | `pipx install git+https://github.com/georgepol1023/Mathematics-Visualiser.git` | Run `mathviz`. Needs Python 3.9 or later ([pipx](https://pipx.pypa.io) keeps it in its own environment; plain `pip install` works too). |
+| **macOS, Linux** (or Windows with Python) | `pipx install git+https://github.com/georgepol1023/Mathematics-Visualiser.git` | Run `mathviz`. Needs Python 3.10 or later ([pipx](https://pipx.pypa.io) keeps it in its own environment; plain `pip install` works too). |
 
 <details>
 <summary><b>The first time you open the .exe, Windows shows a warning</b></summary>
@@ -82,7 +82,7 @@ The app never connects to the internet and collects no data. Equations are read 
 
 ## Building it yourself
 
-You need Python 3.9 or later.
+You need Python 3.10 or later.
 
 ```bash
 git clone https://github.com/georgepol1023/Mathematics-Visualiser.git && cd Mathematics-Visualiser
