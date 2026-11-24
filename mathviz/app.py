@@ -1,25 +1,45 @@
+"""Mathematics Visualiser: the Tkinter + Matplotlib desktop app."""
+
+import multiprocessing
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, colorchooser
-import tkinter.font as tkfont
+from tkinter import ttk, messagebox, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib import animation
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import colors as mcolors
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers the 3D projection)
 import numpy as np
 import sympy as sp
 from scipy import integrate
-import colorsys
-import random
-from datetime import datetime
-import json
-import os
+
+from . import __version__
+from .symbolic import SymbolicWorker, TIMEOUT as SYMBOLIC_TIMEOUT
+
+APP_NAME = "Mathematics Visualiser"
+GIF_FRAMES = 120  # frames in a saved animation (4 s at 30 fps)
+
+
+def compile_expression(expr, symbols, *arrays):
+    """Evaluate a SymPy expression over NumPy arrays.
+
+    The result always has the shape of the inputs, so constants such as ``5``
+    plot as a flat line instead of a single point.
+    """
+    func = sp.lambdify(symbols, expr, modules=['numpy'])
+    values = np.asarray(func(*arrays), dtype=float)
+    return np.broadcast_to(values, np.shape(arrays[0])).copy()
+
 
 class SuperMathGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("✨ Super Math Visualization Studio ✨")
+        self.root.title(f"{APP_NAME} {__version__}")
         self.root.geometry("1600x900")
+
+        # SymPy worker for exact integrals; starts loading in the background now
+        self.symbolic = SymbolicWorker()
+        self.symbolic.start()
         
         # Set dark theme
         self.setup_dark_theme()
@@ -143,7 +163,7 @@ class SuperMathGUI:
         main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Left panel for controls
-        left_panel = ttk.Frame(main_container, style='Dark.TFrame', width=400)
+        left_panel = ttk.Frame(main_container, style='Dark.TFrame', width=480)
         left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 10))
         left_panel.pack_propagate(False)
         
@@ -606,18 +626,21 @@ class SuperMathGUI:
         self.t_min.set(t_min)
         self.t_max.set(t_max)
         
-    def switch_plot_mode(self):
-        """Switch between 2D, 3D, and parametric modes"""
-        mode = self.plot_mode.get()
-        self.clear_plot()
-        
-        if mode == "3D":
+    def new_axes(self, three_d=False):
+        """Replace the figure's axes (and any colourbars) with a fresh set"""
+        self.stop_animation()
+        self.fig.clear()
+        if three_d:
             self.ax = self.fig.add_subplot(111, projection='3d')
         else:
             self.ax = self.fig.add_subplot(111)
-        
         self.ax.set_facecolor('#16213e' if self.dark_mode.get() else 'white')
-        self.canvas.draw()
+
+    def switch_plot_mode(self):
+        """Switch between 2D, 3D, and parametric modes"""
+        mode = self.plot_mode.get()
+        self.new_axes(three_d=(mode == "3D"))
+        self.clear_plot()
         
     def plot_function(self):
         """Main plotting function"""
@@ -648,9 +671,9 @@ class SuperMathGUI:
             # Parse and evaluate equation
             x_sym = sp.symbols('x')
             expr = sp.sympify(equation)
-            func = sp.lambdify(x_sym, expr, modules=['numpy'])
+            func = lambda v: compile_expression(expr, x_sym, v)
             y = func(x)
-            
+
             # Clear and setup axes
             self.ax.clear()
             
@@ -667,8 +690,9 @@ class SuperMathGUI:
                 self.ax.scatter(x[::10], y[::10], color=color, s=self.marker_size.get()**2,
                               label=f"y = {equation}", alpha=0.6)
             elif style == 'stem':
-                self.ax.stem(x[::20], y[::20], linefmt=color, markerfmt=f'{color}o',
-                           label=f"y = {equation}")
+                markers, stems, base = self.ax.stem(x[::20], y[::20], label=f"y = {equation}")
+                markers.set_color(color)
+                stems.set_color(color)
             elif style == 'step':
                 self.ax.step(x, y, color=color, linewidth=self.line_width.get(),
                            label=f"y = {equation}")
@@ -679,7 +703,10 @@ class SuperMathGUI:
             # Add calculus features if enabled
             if self.show_derivatives.get():
                 self.plot_derivative(x, func, color)
-                
+
+            if self.show_integrals.get():
+                self.plot_antiderivative(x, y, color)
+
             if self.show_tangent.get():
                 self.plot_tangent_line(x, func, expr, x_sym, color)
                 
@@ -708,15 +735,14 @@ class SuperMathGUI:
             x = np.linspace(self.x_min.get(), self.x_max.get(), 100)
             y = np.linspace(self.y_min.get(), self.y_max.get(), 100)
             X, Y = np.meshgrid(x, y)
-            
+
             # Evaluate equation
             x_sym, y_sym = sp.symbols('x y')
             expr = sp.sympify(equation)
-            func = sp.lambdify((x_sym, y_sym), expr, modules=['numpy'])
-            Z = func(X, Y)
-            
-            # Clear axes
-            self.ax.clear()
+            Z = compile_expression(expr, (x_sym, y_sym), X, Y)
+
+            # Fresh 3D axes, so colourbars from earlier plots don't pile up
+            self.new_axes(three_d=True)
             
             # Plot based on surface type
             surface_type = self.surface_type.get()
@@ -753,12 +779,9 @@ class SuperMathGUI:
             t_sym = sp.symbols('t')
             x_expr = sp.sympify(self.param_x.get())
             y_expr = sp.sympify(self.param_y.get())
-            
-            x_func = sp.lambdify(t_sym, x_expr, modules=['numpy'])
-            y_func = sp.lambdify(t_sym, y_expr, modules=['numpy'])
-            
-            x = x_func(t)
-            y = y_func(t)
+
+            x = compile_expression(x_expr, t_sym, t)
+            y = compile_expression(y_expr, t_sym, t)
             
             # Clear and plot
             self.ax.clear()
@@ -796,12 +819,25 @@ class SuperMathGUI:
             dy = np.gradient(y, dx)
             
             # Plot with modified color
-            r, g, b = plt.colors.to_rgb(color)
+            r, g, b = mcolors.to_rgb(color)
             deriv_color = (min(1, r*1.3), min(1, g*0.7), min(1, b*0.7))
-            
+
             self.ax.plot(x, dy, '--', color=deriv_color, linewidth=self.line_width.get()*0.7,
                         label="f'(x)", alpha=0.7)
-                        
+
+        except Exception:
+            pass
+
+    def plot_antiderivative(self, x, y, color):
+        """Plot F(x), the integral of f from the lower integration bound to x"""
+        try:
+            F = integrate.cumulative_trapezoid(y, x, initial=0)
+            # Shift so that F(lower bound) = 0
+            F -= np.interp(self.int_lower.get(), x, F)
+            r, g, b = mcolors.to_rgb(color)
+            int_color = (min(1, r*0.7), min(1, g*1.3), min(1, b*0.7))
+            self.ax.plot(x, F, ':', color=int_color, linewidth=self.line_width.get()*0.8,
+                        label=f"∫ f dx from {self.int_lower.get():g}", alpha=0.8)
         except Exception:
             pass
             
@@ -871,18 +907,28 @@ class SuperMathGUI:
             lower = self.int_lower.get()
             upper = self.int_upper.get()
             
-            # Symbolic integration
-            integral = sp.integrate(expr, (x_sym, lower, upper))
-            
-            # Numerical integration for comparison
+            # Numerical integration
             func = sp.lambdify(x_sym, expr, modules=['numpy'])
             numerical, _ = integrate.quad(func, lower, upper)
-            
+
+            # Symbolic integration, for comparison. SymPy can take minutes on
+            # hard integrals, so give up after a few seconds rather than freeze.
+            status, value = self.symbolic.integrate(
+                equation, 'x', lower, upper, pump=self.root.update)
+            if status == "ok":
+                symbolic = f"{value:.6f}"
+            elif status == "timeout":
+                symbolic = f"gave up after {SYMBOLIC_TIMEOUT:g} s"
+            elif status == "error":
+                symbolic = "SymPy could not integrate this"
+            else:
+                symbolic = "no closed form found"
+
             # Display results
             result_text = f"Function: {equation}\n"
             result_text += f"Bounds: [{lower:.2f}, {upper:.2f}]\n"
             result_text += f"─" * 30 + "\n"
-            result_text += f"Symbolic integral: {integral:.6f}\n"
+            result_text += f"Symbolic integral: {symbolic}\n"
             result_text += f"Numerical integral: {numerical:.6f}\n"
             
             # Calculate derivative at bounds
@@ -944,7 +990,7 @@ class SuperMathGUI:
             self.ax.axvline(x=0, color='white', linewidth=0.5, alpha=0.5)
             
         # Legend
-        if self.show_legend.get() and len(self.ax.lines) > 0:
+        if self.show_legend.get() and self.ax.get_legend_handles_labels()[1]:
             self.ax.legend(loc='best', framealpha=0.8)
             
         # Labels
@@ -1013,23 +1059,25 @@ class SuperMathGUI:
             return
             
         x = np.linspace(self.x_min.get(), self.x_max.get(), self.num_points.get())
-        
+        x_sym = sp.symbols('x')
+        try:
+            base_expr = sp.sympify(equation)
+        except (sp.SympifyError, SyntaxError, TypeError):
+            return
+
         def update(frame):
             if not self.is_animating:
                 return
-                
+
             self.ax.clear()
-            
-            # Modify equation with phase
+
+            # Shift the function right: f(x) -> f(x - phase)
             phase = frame * 0.1
-            modified_eq = equation.replace('x', f'(x - {phase})')
-            
+
             try:
-                x_sym = sp.symbols('x')
-                expr = sp.sympify(modified_eq)
-                func = sp.lambdify(x_sym, expr, modules=['numpy'])
-                y = func(x)
-                
+                expr = base_expr.subs(x_sym, x_sym - phase)
+                y = compile_expression(expr, x_sym, x)
+
                 color = self.color_schemes[self.current_scheme][0]
                 self.ax.plot(x, y, color=color, linewidth=self.line_width.get())
                 self.ax.set_title(f"Phase Animation: {equation}", fontsize=14)
@@ -1039,7 +1087,8 @@ class SuperMathGUI:
                 pass
                 
         self.animation_obj = animation.FuncAnimation(
-            self.fig, update, interval=self.anim_speed.get(), repeat=True
+            self.fig, update, interval=self.anim_speed.get(), repeat=True,
+            save_count=GIF_FRAMES, cache_frame_data=False
         )
         self.canvas.draw()
         
@@ -1063,8 +1112,7 @@ class SuperMathGUI:
             try:
                 x_sym = sp.symbols('x')
                 expr = sp.sympify(equation)
-                func = sp.lambdify(x_sym, expr, modules=['numpy'])
-                y = func(x) * amp
+                y = compile_expression(expr, x_sym, x) * amp
                 
                 color = self.color_schemes[self.current_scheme][1]
                 self.ax.plot(x, y, color=color, linewidth=self.line_width.get())
@@ -1075,33 +1123,45 @@ class SuperMathGUI:
                 pass
                 
         self.animation_obj = animation.FuncAnimation(
-            self.fig, update, interval=self.anim_speed.get(), repeat=True
+            self.fig, update, interval=self.anim_speed.get(), repeat=True,
+            save_count=GIF_FRAMES, cache_frame_data=False
         )
         self.canvas.draw()
         
     def animate_frequency(self):
-        """Animate frequency modulation"""
-        base_equation = "sin(f * x)"
+        """Animate frequency modulation: f(x) -> f(k*x) with k varying"""
+        equation = self.equation_text.get('1.0', tk.END).strip()
+        if not equation:
+            return
         x = np.linspace(self.x_min.get(), self.x_max.get(), self.num_points.get())
-        
+        x_sym = sp.symbols('x')
+        try:
+            base_expr = sp.sympify(equation)
+        except (sp.SympifyError, SyntaxError, TypeError):
+            return
+
         def update(frame):
             if not self.is_animating:
                 return
-                
+
             self.ax.clear()
-            
-            # Vary frequency
-            freq = 1 + 2 * np.sin(frame * 0.05)
-            
-            y = np.sin(freq * x)
-            
+
+            # Vary frequency between 0.5x and 2.5x
+            freq = 1.5 + np.sin(frame * 0.05)
+
+            try:
+                y = compile_expression(base_expr.subs(x_sym, freq * x_sym), x_sym, x)
+            except Exception:
+                return
+
             color = self.color_schemes[self.current_scheme][2]
             self.ax.plot(x, y, color=color, linewidth=self.line_width.get())
-            self.ax.set_title(f"Frequency: {freq:.2f}", fontsize=14)
+            self.ax.set_title(f"Frequency x{freq:.2f}", fontsize=14)
             self.apply_plot_styling()
             
         self.animation_obj = animation.FuncAnimation(
-            self.fig, update, interval=self.anim_speed.get(), repeat=True
+            self.fig, update, interval=self.anim_speed.get(), repeat=True,
+            save_count=GIF_FRAMES, cache_frame_data=False
         )
         self.canvas.draw()
         
@@ -1116,8 +1176,7 @@ class SuperMathGUI:
         try:
             x_sym = sp.symbols('x')
             expr = sp.sympify(equation)
-            func = sp.lambdify(x_sym, expr, modules=['numpy'])
-            y_full = func(x_full)
+            y_full = compile_expression(expr, x_sym, x_full)
         except:
             return
             
@@ -1144,7 +1203,8 @@ class SuperMathGUI:
             self.apply_plot_styling()
             
         self.animation_obj = animation.FuncAnimation(
-            self.fig, update, interval=self.anim_speed.get(), repeat=True
+            self.fig, update, interval=self.anim_speed.get(), repeat=True,
+            save_count=GIF_FRAMES, cache_frame_data=False
         )
         self.canvas.draw()
         
@@ -1162,7 +1222,8 @@ class SuperMathGUI:
             self.ax.view_init(elev=30, azim=frame*2)
             
         self.animation_obj = animation.FuncAnimation(
-            self.fig, update, interval=self.anim_speed.get(), repeat=True
+            self.fig, update, interval=self.anim_speed.get(), repeat=True,
+            save_count=GIF_FRAMES, cache_frame_data=False
         )
         self.canvas.draw()
         
@@ -1278,7 +1339,7 @@ class SuperMathGUI:
         self.plot_function()
         
         # Add welcome message
-        self.ax.text(0.5, 1.05, "Welcome to Super Math Visualization Studio!",
+        self.ax.text(0.5, 1.05, f"Welcome to {APP_NAME}!",
                     transform=self.ax.transAxes, fontsize=16,
                     ha='center', color='cyan', weight='bold')
         
@@ -1286,9 +1347,13 @@ class SuperMathGUI:
 
 
 def main():
+    multiprocessing.freeze_support()  # for the packaged .exe
     root = tk.Tk()
     app = SuperMathGUI(root)
-    root.mainloop()
+    try:
+        root.mainloop()
+    finally:
+        app.symbolic.stop()
 
 
 if __name__ == "__main__":

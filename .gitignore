@@ -18,3 +18,8 @@ build/
 *.swo
 *~
 .ipynb_checkpoints/
+
+# Build output and old local builds (releases are built by GitHub Actions)
+*.exe
+*.spec
+build_old*/
